@@ -148,7 +148,7 @@ namespace CopiarIconos
                 }
                 else if (totalExisting > 0)
                 {
-                    _logger.LogDebug("Completado: {Existing} archivos ya existen", totalExisting);
+                    _logger.LogInformation("Completado: {Existing} archivos ya existen", totalExisting);
                 }
             }
             catch (Exception ex) 
