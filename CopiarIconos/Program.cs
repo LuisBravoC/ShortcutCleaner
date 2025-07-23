@@ -103,7 +103,6 @@ namespace CopiarIconos
                     }
                     catch { }
                 }
-                paths.Add(@"C:\Users\Public\Desktop");
             }
             catch (Exception ex) { _logger.LogError(ex, "Error detectando escritorios"); }
             
@@ -258,9 +257,16 @@ namespace CopiarIconos
     {
         public static async Task Main(string[] args)
         {
+            int interval = 1;
+            if (args.Length > 0 && int.TryParse(args[0], out var parsed) && parsed >= 1 && parsed <= 1440)
+                interval = parsed;
+
             var builder = Host.CreateApplicationBuilder(args);
-            
-            builder.Services.AddSingleton(new IconMonitorConfig());
+
+            builder.Services.AddSingleton(new IconMonitorConfig
+            {
+                CheckIntervalMinutes = interval
+            });
             builder.Services.AddHostedService<IconMonitorService>();
             builder.Services.AddWindowsService(options => options.ServiceName = "IconMonitorService");
             builder.Services.AddLogging(logging =>
