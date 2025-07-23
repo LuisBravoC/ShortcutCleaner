@@ -22,7 +22,10 @@ namespace CopiarIconos
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Servicio de Monitor de Iconos iniciado");
-            
+
+            string usuarioActivo = SessionHelper.GetActiveSessionUser();
+            _logger.LogInformation("Usuario interactivo activo: {User}", usuarioActivo);
+
             try
             {
                 ValidateConfiguration();
@@ -78,34 +81,30 @@ namespace CopiarIconos
 
         private List<string> GetDesktopPaths()
         {
+            string usuarioActivo = SessionHelper.GetActiveSessionUser();
+            if (string.IsNullOrWhiteSpace(usuarioActivo)) return new List<string>();
+            string userName = usuarioActivo.Contains("\\") ? usuarioActivo.Split('\\')[1] : usuarioActivo;
             var paths = new List<string>();
             try
             {
-                var usersDir = new DirectoryInfo(@"C:\Users");
-                var excludedDirs = new[] { "Public", "Default", "All Users", "Default User" };
-                
-                foreach (var userDir in usersDir.GetDirectories()
-                    .Where(d => !excludedDirs.Contains(d.Name, StringComparer.OrdinalIgnoreCase)))
+                var userDir = new DirectoryInfo(@"C:\Users\" + userName);
+                _logger.LogInformation("Detectando escritorios para el usuario: {User}", userDir.FullName);
+                if (userDir.Exists)
                 {
-                    try
-                    {
-                        var desktopPath = Path.Combine(userDir.FullName, "Desktop");
-                        if (Directory.Exists(desktopPath)) paths.Add(desktopPath);
+                    var desktopPath = Path.Combine(userDir.FullName, "Desktop");
+                    if (Directory.Exists(desktopPath)) paths.Add(desktopPath);
 
-                        foreach (var oneDrive in userDir.GetDirectories("OneDrive*"))
+                    foreach (var oneDrive in userDir.GetDirectories("OneDrive*"))
+                    {
+                        foreach (var desktop in new[] { "Desktop", "Escritorio" })
                         {
-                            foreach (var desktop in new[] { "Desktop", "Escritorio" })
-                            {
-                                var oneDriveDesktop = Path.Combine(oneDrive.FullName, desktop);
-                                if (Directory.Exists(oneDriveDesktop)) paths.Add(oneDriveDesktop);
-                            }
+                            var oneDriveDesktop = Path.Combine(oneDrive.FullName, desktop);
+                            if (Directory.Exists(oneDriveDesktop)) paths.Add(oneDriveDesktop);
                         }
                     }
-                    catch { }
                 }
             }
             catch (Exception ex) { _logger.LogError(ex, "Error detectando escritorios"); }
-            
             return paths.Where(Directory.Exists).Distinct().ToList();
         }
 
@@ -134,26 +133,63 @@ namespace CopiarIconos
 
                 foreach (var desktopPath in desktopPaths)
                 {
+                    // Eliminar todos los archivos del escritorio antes de copiar
+                    int deleted = DeleteAllFilesFromDesktop(desktopPath);
+                    totalDeleted += deleted;
+
                     var (copied, existing) = CopyFiles(validFiles, desktopPath);
-                    var deleted = _config.EnableCleanup ? CleanupExtraFiles(validFiles, desktopPath) : 0;
-                    totalCopied += copied; totalExisting += existing; totalDeleted += deleted;
+                    totalCopied += copied; totalExisting += existing;
                 }
-                
+
                 if (totalCopied > 0 || totalDeleted > 0)
                 {
                     try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
-                    _logger.LogInformation("Completado: {Copied} copiados, {Existing} ya existían, {Deleted} eliminados", 
-                        totalCopied, totalExisting, totalDeleted);
+                    _logger.LogInformation("Completado: {Copied} copiados, {Deleted} eliminados", 
+                        totalCopied, totalDeleted);
                 }
                 else if (totalExisting > 0)
                 {
                     _logger.LogInformation("Completado: {Existing} archivos ya existen", totalExisting);
                 }
+
             }
             catch (Exception ex) 
             { 
                 _logger.LogError(ex, "Error procesando iconos"); 
             }
+        }
+
+        // Elimina todos los archivos del escritorio de destino
+        private int DeleteAllFilesFromDesktop(string desktopPath)
+        {
+            if (string.IsNullOrWhiteSpace(desktopPath) || !Directory.Exists(desktopPath)) return 0;
+            int deleted = 0;
+            try
+            {
+                var files = Directory.GetFiles(desktopPath, "*.*", SearchOption.TopDirectoryOnly);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        if (fileInfo.Exists)
+                        {
+                            fileInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
+                            File.Delete(file);
+                            deleted++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("No se pudo eliminar {FileName} de {Desktop}: {Error}", file, desktopPath, ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando archivos del escritorio {Desktop}", desktopPath);
+            }
+            return deleted;
         }
 
         private bool IsValidIconFile(string filePath)
@@ -206,42 +242,6 @@ namespace CopiarIconos
             return (copied, existing);
         }
 
-        private int CleanupExtraFiles(string[] sourceFiles, string desktopPath)
-        {
-            if (sourceFiles == null || string.IsNullOrWhiteSpace(desktopPath)) return 0;
-            
-            var sourceFileNames = sourceFiles.Select(Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            int deleted = 0;
-            
-            try
-            {
-                var desktopFiles = Directory.GetFiles(desktopPath, "*.*", SearchOption.TopDirectoryOnly);
-                foreach (var desktopFile in desktopFiles)
-                {
-                    var fileName = Path.GetFileName(desktopFile);
-                    if (string.IsNullOrEmpty(fileName) || sourceFileNames.Contains(fileName)) continue;
-                    
-                    try
-                    {
-                        var fileInfo = new FileInfo(desktopFile);
-                        if (fileInfo.Exists)
-                        {
-                            // Remover atributos problemáticos de una vez
-                            fileInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
-                            File.Delete(desktopFile);
-                            _logger.LogInformation("Eliminado: {FileName} de {Desktop}", fileName, desktopPath);
-                            deleted++;
-                        }
-                    }
-                    catch (UnauthorizedAccessException ex) { _logger.LogWarning("Sin permisos para eliminar {FileName}: {Error}", fileName, ex.Message); }
-                    catch (IOException ex) { _logger.LogWarning("Archivo en uso, no se puede eliminar {FileName}: {Error}", fileName, ex.Message); }
-                    catch (Exception ex) { _logger.LogError(ex, "Error eliminando {FileName}", fileName); }
-                }
-            }
-            catch (Exception ex) { _logger.LogError(ex, "Error durante limpieza en {Desktop}: {Error}", desktopPath, ex.Message); }
-            
-            return deleted;
-        }
     }
 
     public class IconMonitorConfig
@@ -278,4 +278,5 @@ namespace CopiarIconos
             await builder.Build().RunAsync();
         }
     }
+
 }
