@@ -88,7 +88,7 @@ namespace CopiarIconos
             try
             {
                 var userDir = new DirectoryInfo(@"C:\Users\" + userName);
-                _logger.LogInformation("Detectando escritorios para el usuario: {User}", userDir.FullName);
+                //_logger.LogInformation("Detectando escritorios para el usuario: {User}", userDir.FullName);
                 if (userDir.Exists)
                 {
                     var desktopPath = Path.Combine(userDir.FullName, "Desktop");
@@ -110,53 +110,75 @@ namespace CopiarIconos
 
         private void ProcessIcons()
         {
-            if (!Directory.Exists(_config.SourcePath))
+            // Copiar archivos SOLO a los escritorios de usuario
+            if (Directory.Exists(_config.SourcePath))
             {
-                _logger.LogWarning("Carpeta origen no existe: {SourcePath}", _config.SourcePath);
-                return;
+                try
+                {
+                    var validFiles = Directory.GetFiles(_config.SourcePath, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(IsValidIconFile)
+                        .ToArray();
+
+                    if (validFiles.Length > 0)
+                    {
+                        var desktopPaths = GetDesktopPaths(); // Escritorios usuario (NO público)
+                        int totalCopied = 0, totalExisting = 0, totalDeleted = 0;
+
+                        foreach (var desktopPath in desktopPaths)
+                        {
+                            // Eliminar todos los archivos del escritorio antes de copiar
+                            int deleted = DeleteAllFilesFromDesktop(desktopPath);
+                            totalDeleted += deleted;
+
+                            var (copied, existing) = CopyFiles(validFiles, desktopPath);
+                            totalCopied += copied; totalExisting += existing;
+                        }
+
+                        if (totalCopied > 0 || totalDeleted > 0)
+                        {
+                            _logger.LogInformation("Completado (Usuario): {Copied} copiados, {Deleted} eliminados", 
+                                totalCopied, totalDeleted);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug("No se encontraron archivos válidos en {SourcePath}", _config.SourcePath);
+                    }
+                }
+                catch (Exception ex) 
+                { 
+                    _logger.LogError(ex, "Error procesando iconos desde {SourcePath}", _config.SourcePath); 
+                }
             }
 
-            try
+            // Copiar archivos SOLO a escritorio público desde carpeta Public
+            var publicDesktop = @"C:\Users\Public\Desktop";
+            if (Directory.Exists(_config.publicSource) && Directory.Exists(publicDesktop))
             {
-                var validFiles = Directory.GetFiles(_config.SourcePath, "*.*", SearchOption.TopDirectoryOnly)
-                    .Where(IsValidIconFile)
-                    .ToArray();
-
-                if (validFiles.Length == 0)
+                try
                 {
-                    _logger.LogDebug("No se encontraron archivos válidos");
-                    return;
+                    var publicFiles = Directory.GetFiles(_config.publicSource, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(IsValidIconFile)
+                        .ToArray();
+
+                    if (publicFiles.Length > 0)
+                    {
+                        int deleted = DeleteAllFilesFromDesktop(publicDesktop);
+                        var (copied, existing) = CopyFiles(publicFiles, publicDesktop);
+                        _logger.LogInformation("Completado (Public): {Copied} copiados, {Deleted} eliminados", copied, deleted);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("No se encontraron archivos válidos en {SourcePath}", _config.publicSource);
+                    }
                 }
-
-                var desktopPaths = GetDesktopPaths(); // Varios escritorios
-                int totalCopied = 0, totalExisting = 0, totalDeleted = 0;
-
-                foreach (var desktopPath in desktopPaths)
+                catch (Exception ex)
                 {
-                    // Eliminar todos los archivos del escritorio antes de copiar
-                    int deleted = DeleteAllFilesFromDesktop(desktopPath);
-                    totalDeleted += deleted;
-
-                    var (copied, existing) = CopyFiles(validFiles, desktopPath);
-                    totalCopied += copied; totalExisting += existing;
+                    _logger.LogError(ex, "Error procesando iconos públicos desde {SourcePath}", _config.publicSource);
                 }
-
-                if (totalCopied > 0 || totalDeleted > 0)
-                {
-                    try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
-                    _logger.LogInformation("Completado: {Copied} copiados, {Deleted} eliminados", 
-                        totalCopied, totalDeleted);
-                }
-                else if (totalExisting > 0)
-                {
-                    _logger.LogInformation("Completado: {Existing} archivos ya existen", totalExisting);
-                }
-
             }
-            catch (Exception ex) 
-            { 
-                _logger.LogError(ex, "Error procesando iconos"); 
-            }
+
+            try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
         }
 
         // Elimina todos los archivos del escritorio de destino
@@ -176,6 +198,7 @@ namespace CopiarIconos
                         {
                             fileInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                             File.Delete(file);
+                            //_logger.LogInformation("Eliminado: {FileName} de {Desktop}", file, desktopPath);
                             deleted++;
                         }
                     }
@@ -198,7 +221,7 @@ namespace CopiarIconos
             try
             {
                 var extension = Path.GetExtension(filePath).ToLowerInvariant();
-                if (!_config.AllowedExtensions.Contains(extension)) return false;
+                //if (!_config.AllowedExtensions.Contains(extension)) return false;
 
                 var fileInfo = new FileInfo(filePath);
                 if (fileInfo.Length > _config.MaxFileSizeBytes)
@@ -246,7 +269,8 @@ namespace CopiarIconos
 
     public class IconMonitorConfig
     {
-        public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\iconos";
+        public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Iconos";
+        public string publicSource { get; set; } = @"C:\Windows\Setup\Files\Public";
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public bool EnableCleanup { get; set; } = true;
         public int CheckIntervalMinutes { get; set; } = 1;
