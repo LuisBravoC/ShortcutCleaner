@@ -296,7 +296,12 @@ namespace CopiarIconos
             builder.Services.AddLogging(logging =>
             {
                 logging.AddConsole();
-                logging.AddEventLog();
+                logging.AddEventLog(eventLogSettings =>
+                {
+                    eventLogSettings.SourceName = "IconMonitorService";
+                    eventLogSettings.LogName = "Application";
+                });
+                logging.SetMinimumLevel(LogLevel.Information);
             });
 
             await builder.Build().RunAsync();
