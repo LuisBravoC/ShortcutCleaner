@@ -23,8 +23,13 @@ namespace CopiarIconos
         {
             _logger.LogInformation("Servicio de Monitor de Iconos iniciado");
 
-            string usuarioActivo = SessionHelper.GetActiveSessionUser();
-            _logger.LogInformation("Usuario interactivo activo: {User}", usuarioActivo);
+            _logger.LogInformation("HOSTNAME 1: {Hostname1}", _config.hostname);
+
+            string hostnameType = HostnameHelper.GetTypeName(_config.hostname);
+            _logger.LogInformation("Tipo de HOSTNAME : {TipoHostname}", hostnameType);
+
+            string currentUser = SessionHelper.GetActiveSessionUser();
+            _logger.LogInformation("Usuario interactivo activo: {User}", currentUser);
 
             try
             {
@@ -241,13 +246,20 @@ namespace CopiarIconos
         private (int copied, int existing) CopyFiles(string[] sourceFiles, string desktopPath)
         {
             if (sourceFiles == null || string.IsNullOrWhiteSpace(desktopPath)) return (0, 0);
-            
+
             int copied = 0, existing = 0;
             foreach (var sourceFile in sourceFiles.Where(f => !string.IsNullOrWhiteSpace(f)))
             {
                 var fileName = Path.GetFileName(sourceFile);
                 if (string.IsNullOrWhiteSpace(fileName)) continue;
-                
+
+                // Verifica si el archivo está permitido para el hostname actual
+                if (!HostnameHelper.IsFileAllowedForHostname(fileName, _config.hostname))
+                {
+                    _logger.LogWarning("Archivo {FileName} no permitido para hostname {Hostname}", fileName, _config.hostname);
+                    continue;
+                }
+
                 var destinationFile = Path.Combine(desktopPath, fileName);
                 if (File.Exists(destinationFile)) { existing++; continue; }
 
@@ -271,6 +283,7 @@ namespace CopiarIconos
     {
         public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Iconos";
         public string publicSource { get; set; } = @"C:\Windows\Setup\Files\Public";
+        public string hostname { get; set; } = Environment.MachineName; 
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public bool EnableCleanup { get; set; } = true;
         public int CheckIntervalMinutes { get; set; } = 1;
