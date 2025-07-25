@@ -6,6 +6,12 @@ namespace CopiarIconos.Services
 {
     public class CleanupService
     {
+        private readonly ILogger<CleanupService> _logger;
+        public CleanupService(ILogger<CleanupService> logger)
+        {
+            _logger = logger;
+        }
+
         public int DeleteAllFilesFromDesktop(string desktopPath)
         {
             if (string.IsNullOrWhiteSpace(desktopPath) || !Directory.Exists(desktopPath)) return 0;
@@ -26,15 +32,15 @@ namespace CopiarIconos.Services
                             deleted++;
                         }
                     }
-                    catch (Exception ex) 
+                    catch (Exception ex)
                     {
-                        //_logger.LogWarning("No se pudo eliminar {FileName} de {Desktop}: {Error}", file, desktopPath, ex.Message);
+                        _logger.LogWarning("No se pudo eliminar {FileName} de {Desktop}: {Error}", file, desktopPath, ex.Message);
                     }
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error eliminando archivos del escritorio {Desktop}", desktopPath);
+                _logger.LogError(ex, "Error eliminando archivos del escritorio {Desktop}", desktopPath);
             }
             return deleted;
         }

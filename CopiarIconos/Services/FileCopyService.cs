@@ -25,10 +25,14 @@ namespace CopiarIconos.Services
                 var fileName = Path.GetFileName(sourceFile);
                 if (string.IsNullOrWhiteSpace(fileName)) continue;
 
+                string hostnameType = HostnameHelper.GetTypeName(hostname);
                 if (!HostnameHelper.IsFileAllowedForHostname(fileName, hostname))
                 {
-                    _logger.LogWarning("Archivo {FileName} no permitido para hostname {Hostname}", fileName, _config.hostname);
+                    _logger.LogWarning("Archivo {FileName} no permitido para {HostnameType} - {Hostname}", fileName, hostnameType, hostname);
                     continue;
+                } else if (HostnameHelper.AllowedFilesByLetter.Values.Any(set => set.Contains(fileName)))
+                {
+                    _logger.LogInformation("Archivo {FileName} permitido para {HostnameType} - {Hostname}", fileName, hostnameType, hostname);
                 }
 
                 var destinationFile = Path.Combine(desktopPath, fileName);

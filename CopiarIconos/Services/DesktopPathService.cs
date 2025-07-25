@@ -6,6 +6,12 @@ namespace CopiarIconos.Services
 {
     public class DesktopPathService
     {
+        private readonly ILogger<DesktopPathService> _logger;
+        public DesktopPathService(ILogger<DesktopPathService> logger)
+        {
+            _logger = logger;
+        }
+
         public List<string> GetDesktopPaths(string userName)
         {
             var paths = new List<string>();
@@ -13,7 +19,6 @@ namespace CopiarIconos.Services
             try
             {
                 var userDir = new DirectoryInfo(@"C:\Users\" + userName);
-                //_logger.LogInformation("Detectando escritorios para el usuario: {User}", userDir.FullName);
                 if (userDir.Exists)
                 {
                     var desktopPath = Path.Combine(userDir.FullName, "Desktop");
@@ -28,8 +33,12 @@ namespace CopiarIconos.Services
                         }
                     }
                 }
+                //_logger.LogInformation("Detectando {Count} escritorios para el usuario: {User}", paths.Count, userName);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error detecting desktops for user {User}", userName);
+            }
             return paths;
         }
     }

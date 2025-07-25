@@ -189,7 +189,7 @@ namespace CopiarIconos
     {
         public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Iconos";
         public string publicSource { get; set; } = @"C:\Windows\Setup\Files\Public";
-        public string hostname { get; set; } = Environment.MachineName; 
+        public string hostname { get; set; } = Environment.MachineName; //"0415C99CLCN-CLN";
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public bool EnableCleanup { get; set; } = true;
         public int CheckIntervalMinutes { get; set; } = 1;

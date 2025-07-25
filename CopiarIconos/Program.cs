@@ -18,6 +18,11 @@ namespace CopiarIconos
             {
                 CheckIntervalMinutes = interval
             });
+            builder.Services.AddSingleton<Services.DesktopPathService>();
+            builder.Services.AddSingleton<Services.FileValidationService>();
+            builder.Services.AddSingleton<Services.CleanupService>();
+            builder.Services.AddSingleton<Services.FileCopyService>();
+            
             builder.Services.AddHostedService<IconMonitorService>();
             builder.Services.AddWindowsService(options => options.ServiceName = "IconMonitorService");
             builder.Services.AddLogging(logging =>
@@ -30,10 +35,6 @@ namespace CopiarIconos
                 });
                 logging.SetMinimumLevel(LogLevel.Information);
             });
-            builder.Services.AddSingleton<Services.DesktopPathService>();
-            builder.Services.AddSingleton<Services.FileValidationService>();
-            builder.Services.AddSingleton<Services.CleanupService>();
-            builder.Services.AddSingleton<Services.FileCopyService>();
 
             await builder.Build().RunAsync();
         }
