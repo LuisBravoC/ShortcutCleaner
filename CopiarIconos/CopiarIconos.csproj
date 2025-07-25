@@ -7,6 +7,7 @@
     <UseWindowsService>true</UseWindowsService>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <TrimMode>full</TrimMode>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <DebuggerSupport>false</DebuggerSupport>
     <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
