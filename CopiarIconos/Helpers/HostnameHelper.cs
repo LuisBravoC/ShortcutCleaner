@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace CopiarIconos
+namespace CopiarIconos.Helpers
 {
     public static class HostnameHelper
     {

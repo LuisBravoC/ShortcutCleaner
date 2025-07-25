@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace CopiarIconos
+namespace CopiarIconos.Helpers
 {
     public static class SessionHelper
     {
@@ -9,17 +9,17 @@ namespace CopiarIconos
         static extern int WTSGetActiveConsoleSessionId();
 
         [DllImport("Wtsapi32.dll")]
-        static extern bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, int infoClass, out IntPtr buffer, out uint bytesReturned);
+        static extern bool WTSQuerySessionInformation(nint hServer, int sessionId, int infoClass, out nint buffer, out uint bytesReturned);
 
         [DllImport("Wtsapi32.dll")]
-        static extern void WTSFreeMemory(IntPtr memory);
+        static extern void WTSFreeMemory(nint memory);
 
         public static string GetActiveSessionUser()
         {
             int sessionId = WTSGetActiveConsoleSessionId();
-            IntPtr buffer;
+            nint buffer;
             uint strLen;
-            if (WTSQuerySessionInformation(IntPtr.Zero, sessionId, 5, out buffer, out strLen) && strLen > 1)
+            if (WTSQuerySessionInformation(nint.Zero, sessionId, 5, out buffer, out strLen) && strLen > 1)
             {
                 string? user = Marshal.PtrToStringAnsi(buffer);
                 WTSFreeMemory(buffer);
