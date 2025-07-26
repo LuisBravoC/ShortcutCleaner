@@ -28,7 +28,7 @@ namespace CopiarIconos.Services
                         {
                             fileInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                             File.Delete(file);
-                            //_logger.LogInformation("Eliminado: {FileName} de {Desktop}", file, desktopPath);
+                            _logger.LogDebug("Eliminado: {FileName} de {Desktop}", file, desktopPath);
                             deleted++;
                         }
                     }

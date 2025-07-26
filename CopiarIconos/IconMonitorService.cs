@@ -38,13 +38,9 @@ namespace CopiarIconos
         {
             _logger.LogInformation("Servicio de Monitor de Iconos iniciado");
 
-            _logger.LogInformation("HOSTNAME 1: {Hostname1}", _config.hostname);
-
             string hostnameType = HostnameHelper.GetTypeName(_config.hostname);
-            _logger.LogInformation("Tipo de HOSTNAME : {TipoHostname}", hostnameType);
-
             string currentUser = SessionHelper.GetActiveSessionUser();
-            _logger.LogInformation("Usuario interactivo activo: {User}", currentUser);
+            _logger.LogInformation("Hostname: {Hostname} | Tipo: {HostnameType} | Usuario activo: {User}", _config.hostname, hostnameType, currentUser);
 
             try
             {
@@ -68,14 +64,7 @@ namespace CopiarIconos
 
         private async Task ExecuteMonitoringAsync(CancellationToken stoppingToken)
         {
-            var desktopPaths = GetDesktopPaths();
-
             _logger.LogInformation("Servicio iniciado. Verificando cada {Interval} minuto(s)", _config.CheckIntervalMinutes);
-            _logger.LogInformation("Origen: {Source}", _config.SourcePath);
-            _logger.LogInformation("Escritorios detectados ({Count}):", desktopPaths.Count);
-            foreach (var (desktop, index) in desktopPaths.Select((d, i) => (d, i + 1)))
-                _logger.LogInformation("  {Index}. {Desktop}", index, desktop);
-            _logger.LogInformation("Limpieza automática: {Cleanup}", _config.EnableCleanup ? "ACTIVADA" : "DESACTIVADA");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -115,13 +104,18 @@ namespace CopiarIconos
             {
                 try
                 {
+                    var desktopPaths = GetDesktopPaths(); // Escritorios usuario (NO público)
+                    _logger.LogInformation("Origen: {Source}", _config.SourcePath);
+                    _logger.LogInformation("Escritorios detectados ({Count}):", desktopPaths.Count);
+                    foreach (var (desktop, index) in desktopPaths.Select((d, i) => (d, i + 1)))
+                        _logger.LogInformation("  {Index}. {Desktop}", index, desktop);
+
                     var validFiles = Directory.GetFiles(_config.SourcePath, "*.*", SearchOption.TopDirectoryOnly)
                         .Where(f => _fileValidationService.IsValidIconFile(f, _config.MaxFileSizeBytes))
                         .ToArray();
 
                     if (validFiles.Length > 0)
                     {
-                        var desktopPaths = GetDesktopPaths(); // Escritorios usuario (NO público)
                         int totalCopied = 0, totalExisting = 0, totalDeleted = 0;
 
                         foreach (var desktopPath in desktopPaths)
@@ -138,6 +132,7 @@ namespace CopiarIconos
                         {
                             _logger.LogInformation("Completado (Usuario): {Copied} copiados, {Deleted} eliminados", 
                                 totalCopied, totalDeleted);
+                            _logger.LogInformation("============Copiado al escritorio de usuario finalizado============");
                         }
                     }
                     else
@@ -157,6 +152,7 @@ namespace CopiarIconos
             {
                 try
                 {
+                    _logger.LogInformation("Origen Public: {Source}", _config.publicSource);
                     var publicFiles = Directory.GetFiles(_config.publicSource, "*.*", SearchOption.TopDirectoryOnly)
                         .Where(f => _fileValidationService.IsValidIconFile(f, _config.MaxFileSizeBytes))
                         .ToArray();
@@ -166,6 +162,7 @@ namespace CopiarIconos
                         int deleted = _cleanupService.DeleteAllFilesFromDesktop(publicDesktop);
                         var (copied, existing) = _fileCopyService.CopyFiles(publicFiles, publicDesktop, _config.hostname);
                         _logger.LogInformation("Completado (Public): {Copied} copiados, {Deleted} eliminados", copied, deleted);
+                        _logger.LogInformation("============Copiado al escritorio publico finalizado============");
                     }
                     else
                     {
@@ -187,11 +184,10 @@ namespace CopiarIconos
 
     public class IconMonitorConfig
     {
-        public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Iconos";
+        public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Links";
         public string publicSource { get; set; } = @"C:\Windows\Setup\Files\Public";
-        public string hostname { get; set; } = Environment.MachineName; //"0415C99CLCN-CLN";
+        public string hostname { get; set; } = Environment.MachineName;
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
-        public bool EnableCleanup { get; set; } = true;
         public int CheckIntervalMinutes { get; set; } = 1;
         public string[] AllowedExtensions { get; set; } = [".lnk", ".ico", ".png", ".jpg", ".jpeg", ".bmp"];
     }
