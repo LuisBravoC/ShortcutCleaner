@@ -33,7 +33,7 @@ namespace CopiarIconos.Services
                         }
                     }
                 }
-                //_logger.LogInformation("Detectando {Count} escritorios para el usuario: {User}", paths.Count, userName);
+                _logger.LogDebug("Detectando {Count} escritorios para el usuario: {User}", paths.Count, userName);
             }
             catch (Exception ex)
             {
