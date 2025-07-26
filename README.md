@@ -18,6 +18,11 @@ Servicio de Windows que elimina automáticamente archivos de acceso directo (.ln
 - OneDrive Desktop: `C:\Users\[usuario]\OneDrive\Escritorio`
 - Detección automática de múltiples cuentas OneDrive
 
+## Ubicaciones de Origen por defecto
+
+- Public Desktop: `C:\Windows\Setup\Files\Public`
+- User Desktop: `C:\Windows\Setup\Files\Links`
+
 ## Configuración del Servicio
 
 - **Nombre**: IconMonitorService
