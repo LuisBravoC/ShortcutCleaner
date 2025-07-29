@@ -16,7 +16,7 @@ namespace CopiarIconos.Helpers
 
         public static readonly Dictionary<char, HashSet<string>> AllowedFilesByLetter = new()
         {
-            { 'C', new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Nuevo Punto de Venta.lnk", "Coppel.com en Tienda.lnk" } },
+            { 'C', new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Coppel.com en Tienda.lnk" } },
         };
 
         public static char GetTypeLetter(string hostname)
