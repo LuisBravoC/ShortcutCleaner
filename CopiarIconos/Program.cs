@@ -15,11 +15,29 @@ namespace CopiarIconos
             var builder = Host.CreateApplicationBuilder(args);
 
             var hostnameConfigSection = builder.Configuration.GetSection("HostnameConfig");
-            var hostnameConfig = hostnameConfigSection.Get<Models.HostnameConfigModel>();
-            if (hostnameConfig != null)
+            var typeByLetter = new Dictionary<string, string>();
+            foreach (var typeEntry in hostnameConfigSection.GetSection("TypeByLetter").GetChildren())
+                typeByLetter[typeEntry.Key] = typeEntry.Value ?? string.Empty;
+
+            var allowedFilesByLetter = new Dictionary<string, List<string>>();
+            foreach (var allowedEntry in hostnameConfigSection.GetSection("AllowedFilesByLetter").GetChildren())
+            {
+                var allowedFiles = new List<string>();
+                foreach (var file in allowedEntry.GetChildren())
+                    allowedFiles.Add(file.Value ?? string.Empty);
+                allowedFilesByLetter[allowedEntry.Key] = allowedFiles;
+            }
+
+            var hostnameConfig = new Models.HostnameConfigModel
+            {
+                TypeByLetter = typeByLetter,
+                AllowedFilesByLetter = allowedFilesByLetter
+            };
+
+            if (typeByLetter.Count > 0)
                 Helpers.HostnameHelper.InitFromConfig(hostnameConfig);
             else
-                Console.Error.WriteLine("ERROR: No se encontró la sección HostnameConfig en appsettings.json.");
+                Console.Error.WriteLine("ERROR: No se encontró la sección HostnameConfig en appsettings.json o está vacía.");
 
             builder.Services.AddSingleton(new IconMonitorConfig
             {
