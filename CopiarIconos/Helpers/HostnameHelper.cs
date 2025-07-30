@@ -1,23 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CopiarIconos.Models;
 
 namespace CopiarIconos.Helpers
 {
+
     public static class HostnameHelper
     {
-        public static readonly Dictionary<char, string> TypeByLetter = new()
-        {
-            { 'C', "Caja" },
-            { 'M', "Muebles" },
-            { 'O', "Óptica" },
-            { 'R', "Ropa" },
-        };
+        public static Dictionary<char, string> TypeByLetter { get; private set; } = new();
+        public static Dictionary<char, HashSet<string>> AllowedFilesByLetter { get; private set; } = new();
 
-        public static readonly Dictionary<char, HashSet<string>> AllowedFilesByLetter = new()
+        public static void InitFromConfig(HostnameConfigModel config)
         {
-            { 'C', new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Coppel.com en Tienda.lnk" } },
-        };
+            var typeDict = new Dictionary<char, string>();
+            foreach (var typeEntry in config.TypeByLetter)
+            {
+                if (!string.IsNullOrEmpty(typeEntry.Key) && typeEntry.Key.Length == 1)
+                    typeDict[typeEntry.Key[0]] = typeEntry.Value;
+            }
+            TypeByLetter = typeDict;
+
+            var allowedDict = new Dictionary<char, HashSet<string>>();
+            if (config.AllowedFilesByLetter != null)
+            {
+                foreach (var allowedEntry in config.AllowedFilesByLetter)
+                {
+                    if (!string.IsNullOrEmpty(allowedEntry.Key) && allowedEntry.Key.Length == 1)
+                        allowedDict[allowedEntry.Key[0]] = new HashSet<string>(allowedEntry.Value, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            AllowedFilesByLetter = allowedDict;
+        }
 
         public static char GetTypeLetter(string hostname)
         {

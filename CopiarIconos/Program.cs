@@ -14,6 +14,13 @@ namespace CopiarIconos
 
             var builder = Host.CreateApplicationBuilder(args);
 
+            var hostnameConfigSection = builder.Configuration.GetSection("HostnameConfig");
+            var hostnameConfig = hostnameConfigSection.Get<Models.HostnameConfigModel>();
+            if (hostnameConfig != null)
+                Helpers.HostnameHelper.InitFromConfig(hostnameConfig);
+            else
+                Console.Error.WriteLine("ERROR: No se encontró la sección HostnameConfig en appsettings.json.");
+
             builder.Services.AddSingleton(new IconMonitorConfig
             {
                 CheckIntervalMinutes = interval
@@ -22,7 +29,7 @@ namespace CopiarIconos
             builder.Services.AddSingleton<Services.FileValidationService>();
             builder.Services.AddSingleton<Services.CleanupService>();
             builder.Services.AddSingleton<Services.FileCopyService>();
-            
+
             builder.Services.AddHostedService<IconMonitorService>();
             builder.Services.AddWindowsService(options => options.ServiceName = "IconMonitorService");
             builder.Services.AddLogging(logging =>
