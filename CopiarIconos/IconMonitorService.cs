@@ -17,7 +17,6 @@ namespace CopiarIconos
 
         [DllImport("shell32.dll")]
         private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
-
         public IconMonitorService(
             ILogger<IconMonitorService> logger,
             IconMonitorConfig config,
@@ -97,7 +96,7 @@ namespace CopiarIconos
             return paths.Where(Directory.Exists).Distinct().ToList();
         }
 
-        private void ProcessIcons()
+        private async Task ProcessIcons()
         {
             // Copiar archivos SOLO a los escritorios de usuario
             if (Directory.Exists(_config.SourcePath))
@@ -123,6 +122,8 @@ namespace CopiarIconos
                             // Eliminar todos los archivos del escritorio antes de copiar
                             int deleted = _cleanupService.DeleteAllFilesFromDesktop(desktopPath);
                             totalDeleted += deleted;
+                            try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
+                            await Task.Delay(TimeSpan.FromSeconds(1));
 
                             var (copied, existing) = _fileCopyService.CopyFiles(validFiles, desktopPath, _config.hostname);
                             totalCopied += copied; totalExisting += existing;
@@ -174,7 +175,7 @@ namespace CopiarIconos
                     _logger.LogError(ex, "Error procesando iconos públicos desde {SourcePath}", _config.publicSource);
                 }
             }
-
+            
             try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
         }
 

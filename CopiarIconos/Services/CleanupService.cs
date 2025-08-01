@@ -19,6 +19,8 @@ namespace CopiarIconos.Services
             try
             {
                 var files = Directory.GetFiles(desktopPath, "*.*", SearchOption.TopDirectoryOnly);
+
+                // Eliminar archivos
                 foreach (var file in files)
                 {
                     try
@@ -37,10 +39,31 @@ namespace CopiarIconos.Services
                         _logger.LogWarning("No se pudo eliminar {FileName} de {Desktop}: {Error}", file, desktopPath, ex.Message);
                     }
                 }
+                
+                var folders = Directory.GetDirectories(desktopPath, "*.*", SearchOption.TopDirectoryOnly);
+                // Eliminar carpetas
+                foreach (var folder in folders)
+                {
+                    try
+                    {
+                        var dirInfo = new DirectoryInfo(folder);
+                        if (dirInfo.Exists)
+                        {
+                            dirInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
+                            Directory.Delete(folder, true); // true = recursivo
+                            _logger.LogDebug("Eliminada carpeta: {FolderName} de {Desktop}", folder, desktopPath);
+                            deleted++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("No se pudo eliminar carpeta {FolderName} de {Desktop}: {Error}", folder, desktopPath, ex.Message);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error eliminando archivos del escritorio {Desktop}", desktopPath);
+                _logger.LogError(ex, "Error eliminando archivos y carpetas del escritorio {Desktop}", desktopPath);
             }
             return deleted;
         }
