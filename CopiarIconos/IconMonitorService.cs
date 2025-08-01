@@ -69,7 +69,7 @@ namespace CopiarIconos
             {
                 try
                 {
-                    ProcessIcons();
+                    await ProcessIcons();
                     await Task.Delay(TimeSpan.FromMinutes(_config.CheckIntervalMinutes), stoppingToken);
                 }
                 catch (OperationCanceledException)

@@ -6,9 +6,12 @@ namespace CopiarIconos.Services
     public class FileValidationService
     {
         private readonly ILogger<FileValidationService> _logger;
-        public FileValidationService(ILogger<FileValidationService> logger)
+        private readonly IconMonitorConfig _iconMonitorConfig;
+
+        public FileValidationService(ILogger<FileValidationService> logger, IconMonitorConfig iconMonitorConfig)
         {
             _logger = logger;
+            _iconMonitorConfig = iconMonitorConfig;
         }
 
         public bool IsValidIconFile(string filePath, long maxFileSizeBytes)
@@ -17,12 +20,12 @@ namespace CopiarIconos.Services
             try
             {
                 //var extension = Path.GetExtension(filePath).ToLowerInvariant();
-                //if (!_config.AllowedExtensions.Contains(extension)) return false;
-                
+                //if (!_iconMonitorConfig.AllowedExtensions.Contains(extension)) return false;
+
                 var fileInfo = new FileInfo(filePath);
                 if (fileInfo.Length > maxFileSizeBytes)
                 {
-                    _logger.LogWarning("Archivo {FileName} excede el tamaño máximo ({FileSize} bytes)", fileInfo.Name, fileInfo.Length);
+                    _logger.LogWarning("Archivo {FileName} excede el tamaño máximo ({FileSize} MB)", fileInfo.Name, maxFileSizeBytes / (1024 * 1024));
                     return false;
                 }
                 var fileName = Path.GetFileName(filePath);
