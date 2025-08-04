@@ -47,6 +47,7 @@ namespace CopiarIconos
             builder.Services.AddSingleton<Services.FileValidationService>();
             builder.Services.AddSingleton<Services.CleanupService>();
             builder.Services.AddSingleton<Services.FileCopyService>();
+            //builder.Services.AddScoped<IconMonitorConfig>(); // Se agrego para la inyeccion de la clase FileValidation
 
             builder.Services.AddHostedService<IconMonitorService>();
             builder.Services.AddWindowsService(options => options.ServiceName = "IconMonitorService");

@@ -17,7 +17,6 @@ namespace CopiarIconos
 
         [DllImport("shell32.dll")]
         private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
-
         public IconMonitorService(
             ILogger<IconMonitorService> logger,
             IconMonitorConfig config,
@@ -70,7 +69,7 @@ namespace CopiarIconos
             {
                 try
                 {
-                    ProcessIcons();
+                    await ProcessIcons();
                     await Task.Delay(TimeSpan.FromMinutes(_config.CheckIntervalMinutes), stoppingToken);
                 }
                 catch (OperationCanceledException)
@@ -97,7 +96,7 @@ namespace CopiarIconos
             return paths.Where(Directory.Exists).Distinct().ToList();
         }
 
-        private void ProcessIcons()
+        private async Task ProcessIcons()
         {
             // Copiar archivos SOLO a los escritorios de usuario
             if (Directory.Exists(_config.SourcePath))
@@ -123,6 +122,8 @@ namespace CopiarIconos
                             // Eliminar todos los archivos del escritorio antes de copiar
                             int deleted = _cleanupService.DeleteAllFilesFromDesktop(desktopPath);
                             totalDeleted += deleted;
+                            try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
+                            await Task.Delay(TimeSpan.FromSeconds(1));
 
                             var (copied, existing) = _fileCopyService.CopyFiles(validFiles, desktopPath, _config.hostname);
                             totalCopied += copied; totalExisting += existing;
@@ -160,6 +161,9 @@ namespace CopiarIconos
                     if (publicFiles.Length > 0)
                     {
                         int deleted = _cleanupService.DeleteAllFilesFromDesktop(publicDesktop);
+                        try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
+                        await Task.Delay(TimeSpan.FromSeconds(1));
+
                         var (copied, existing) = _fileCopyService.CopyFiles(publicFiles, publicDesktop, _config.hostname);
                         _logger.LogInformation("Completado (Public): {Copied} copiados, {Deleted} eliminados", copied, deleted);
                         _logger.LogInformation("============Copiado al escritorio publico finalizado============");
@@ -174,7 +178,7 @@ namespace CopiarIconos
                     _logger.LogError(ex, "Error procesando iconos públicos desde {SourcePath}", _config.publicSource);
                 }
             }
-
+            
             try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
         }
 
@@ -189,6 +193,6 @@ namespace CopiarIconos
         public string hostname { get; set; } = Environment.MachineName;
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public int CheckIntervalMinutes { get; set; } = 1;
-        public string[] AllowedExtensions { get; set; } = [".lnk", ".ico", ".png", ".jpg", ".jpeg", ".bmp"];
+        public string[] AllowedExtensions { get; set; } = [".lnk", ".ico", ".url"];
     }
 }
