@@ -19,8 +19,8 @@ namespace CopiarIconos.Services
             if (string.IsNullOrWhiteSpace(filePath)) return false;
             try
             {
-                //var extension = Path.GetExtension(filePath).ToLowerInvariant();
-                //if (!_iconMonitorConfig.AllowedExtensions.Contains(extension)) return false;
+                var extension = Path.GetExtension(filePath).ToLowerInvariant();
+                if (!_iconMonitorConfig.AllowedExtensions.Contains(extension)) return false;
 
                 var fileInfo = new FileInfo(filePath);
                 if (fileInfo.Length > maxFileSizeBytes)

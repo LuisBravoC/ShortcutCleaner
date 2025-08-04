@@ -161,6 +161,9 @@ namespace CopiarIconos
                     if (publicFiles.Length > 0)
                     {
                         int deleted = _cleanupService.DeleteAllFilesFromDesktop(publicDesktop);
+                        try { SHChangeNotify(0x8000000, 0, IntPtr.Zero, IntPtr.Zero); } catch { }
+                        await Task.Delay(TimeSpan.FromSeconds(1));
+
                         var (copied, existing) = _fileCopyService.CopyFiles(publicFiles, publicDesktop, _config.hostname);
                         _logger.LogInformation("Completado (Public): {Copied} copiados, {Deleted} eliminados", copied, deleted);
                         _logger.LogInformation("============Copiado al escritorio publico finalizado============");
@@ -190,6 +193,6 @@ namespace CopiarIconos
         public string hostname { get; set; } = Environment.MachineName;
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public int CheckIntervalMinutes { get; set; } = 1;
-        public string[] AllowedExtensions { get; set; } = [".lnk", ".ico", ".png", ".jpg", ".jpeg", ".bmp"];
+        public string[] AllowedExtensions { get; set; } = [".lnk", ".ico", ".url"];
     }
 }
