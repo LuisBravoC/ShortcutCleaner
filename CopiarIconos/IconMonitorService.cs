@@ -188,8 +188,8 @@ namespace CopiarIconos
 
     public class IconMonitorConfig
     {
-        public string SourcePath { get; set; } = @"C:\Windows\Setup\Files\Links";
-        public string publicSource { get; set; } = @"C:\Windows\Setup\Files\Public";
+        public string SourcePath { get; set; } = @"C:\sys\links\users";
+        public string publicSource { get; set; } = @"C:\sys\links\public";
         public string hostname { get; set; } = Environment.MachineName;
         public long MaxFileSizeBytes { get; set; } = 10485760; // 10MB
         public int CheckIntervalMinutes { get; set; } = 1;
